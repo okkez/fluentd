@@ -43,14 +43,19 @@ class ForwardInputTest < Test::Unit::TestCase
     time = Fluent::EventTime.parse("2011-01-02 13:14:15 UTC")
     Fluent::Engine.now = time
 
-    d.expect_emit "tag1", time, {"a"=>1}
-    d.expect_emit "tag2", time, {"a"=>2}
+    records = [
+      ["tag1", time, {"a"=>1}],
+      ["tag2", time, {"a"=>2}],
+    ]
 
+    d.expected_emits_length = records.length
+    d.run_timeout = 2
     d.run do
-      d.expected_emits.each {|tag,time,record|
+      records.each {|tag,time,record|
         send_data Fluent::Engine.msgpack_factory.packer.write([tag, 0, record]).to_s
       }
     end
+    assert_equal(records, d.emits.sort_by{|a, b| a[0] <=> b[0] })
   end
 
   def test_message
@@ -58,14 +63,19 @@ class ForwardInputTest < Test::Unit::TestCase
 
     time = Fluent::EventTime.parse("2011-01-02 13:14:15 UTC")
 
-    d.expect_emit "tag1", time, {"a"=>1}
-    d.expect_emit "tag2", time, {"a"=>2}
+    records = [
+      ["tag1", time, {"a"=>1}],
+      ["tag2", time, {"a"=>2}],
+    ]
 
+    d.expected_emits_length = records.length
+    d.run_timeout = 2
     d.run do
-      d.expected_emits.each {|tag,time,record|
+      records.each {|tag,time,record|
         send_data Fluent::Engine.msgpack_factory.packer.write([tag, time, record]).to_s
       }
     end
+    assert_equal(records, d.emits)
   end
 
   def test_message_with_time_as_integer
@@ -73,14 +83,20 @@ class ForwardInputTest < Test::Unit::TestCase
 
     time = Time.parse("2011-01-02 13:14:15 UTC").to_i
 
-    d.expect_emit "tag1", time, {"a"=>1}
-    d.expect_emit "tag2", time, {"a"=>2}
+    records = [
+      ["tag1", time, {"a"=>1}],
+      ["tag2", time, {"a"=>2}],
+    ]
 
+    d.expected_emits_length = records.length
+    d.run_timeout = 2
     d.run do
-      d.expected_emits.each {|tag,time,record|
+      records.each {|tag,time,record|
         send_data Fluent::Engine.msgpack_factory.packer.write([tag, time, record]).to_s
       }
     end
+
+    assert_equal(records, d.emits)
   end
 
   def test_message_with_skip_invalid_event
@@ -88,11 +104,13 @@ class ForwardInputTest < Test::Unit::TestCase
 
     time = Fluent::EventTime.parse("2011-01-02 13:14:15 UTC")
 
-    d.expect_emit "tag1", time, {"a" => 1}
-    d.expect_emit "tag2", time, {"a" => 2}
+    records = [
+      ["tag1", time, {"a" => 1}],
+      ["tag2", time, {"a" => 2}],
+    ]
 
     d.run do
-      entries = d.expected_emits.map { |tag, time, record| [tag, time, record] }
+      entries = records.map { |tag, time, record| [tag, time, record] }
       # These entries are skipped
       entries << ['tag1', true, {'a' => 3}] << ['tag2', time, 'invalid record']
 
@@ -103,6 +121,8 @@ class ForwardInputTest < Test::Unit::TestCase
     end
 
     assert_equal 2, d.instance.log.logs.count { |line| line =~ /got invalid event and drop it/ }
+    assert_equal records[0], d.emits[0]
+    assert_equal records[1], d.emits[1]
   end
 
   def test_forward
@@ -110,16 +130,21 @@ class ForwardInputTest < Test::Unit::TestCase
 
     time = Fluent::EventTime.parse("2011-01-02 13:14:15 UTC")
 
-    d.expect_emit "tag1", time, {"a"=>1}
-    d.expect_emit "tag1", time, {"a"=>2}
+    records = [
+      ["tag1", time, {"a"=>1}],
+      ["tag1", time, {"a"=>2}]
+    ]
 
+    d.expected_emits_length = records.length
+    d.run_timeout = 2
     d.run do
       entries = []
-      d.expected_emits.each {|tag,time,record|
+      records.each {|tag,time,record|
         entries << [time, record]
       }
       send_data Fluent::Engine.msgpack_factory.packer.write(["tag1", entries]).to_s
     end
+    assert_equal(records, d.emits)
   end
 
   def test_forward_with_time_as_integer
@@ -127,16 +152,22 @@ class ForwardInputTest < Test::Unit::TestCase
 
     time = Time.parse("2011-01-02 13:14:15 UTC").to_i
 
-    d.expect_emit "tag1", time, {"a"=>1}
-    d.expect_emit "tag1", time, {"a"=>2}
+    records = [
+      ["tag1", time, {"a"=>1}],
+      ["tag1", time, {"a"=>2}]
+    ]
 
+    d.expected_emits_length = records.length
+    d.run_timeout = 2
     d.run do
       entries = []
-      d.expected_emits.each {|tag,time,record|
+      records.each {|tag,time,record|
         entries << [time, record]
       }
       send_data Fluent::Engine.msgpack_factory.packer.write(["tag1", entries]).to_s
     end
+
+    assert_equal(records, d.emits)
   end
 
   def test_forward_with_skip_invalid_event
@@ -144,11 +175,15 @@ class ForwardInputTest < Test::Unit::TestCase
 
     time = Fluent::EventTime.parse("2011-01-02 13:14:15 UTC")
 
-    d.expect_emit "tag1", time, {"a" => 1}
-    d.expect_emit "tag1", time, {"a" => 2}
+    records = [
+      ["tag1", time, {"a" => 1}],
+      ["tag1", time, {"a" => 2}],
+    ]
 
+    d.expected_emits_length = records.length
+    d.run_timeout = 2
     d.run do
-      entries = d.expected_emits.map { |tag, time, record| [time, record] }
+      entries = records.map { |tag, time, record| [time, record] }
       # These entries are skipped
       entries << ['invalid time', {'a' => 3}] << [time, 'invalid record']
 
@@ -163,16 +198,21 @@ class ForwardInputTest < Test::Unit::TestCase
 
     time = Fluent::EventTime.parse("2011-01-02 13:14:15 UTC")
 
-    d.expect_emit "tag1", time, {"a"=>1}
-    d.expect_emit "tag1", time, {"a"=>2}
+    records = [
+      ["tag1", time, {"a"=>1}],
+      ["tag1", time, {"a"=>2}],
+    ]
 
+    d.expected_emits_length = records.length
+    d.run_timeout = 2
     d.run do
       entries = ''
-      d.expected_emits.each {|tag,time,record|
+      records.each {|tag,time,record|
         Fluent::Engine.msgpack_factory.packer(entries).write([time, record]).flush
       }
       send_data Fluent::Engine.msgpack_factory.packer.write(["tag1", entries]).to_s
     end
+    assert_equal(records, d.emits)
   end
 
   def test_packed_forward_with_time_as_integer
@@ -180,16 +220,21 @@ class ForwardInputTest < Test::Unit::TestCase
 
     time = Time.parse("2011-01-02 13:14:15 UTC").to_i
 
-    d.expect_emit "tag1", time, {"a"=>1}
-    d.expect_emit "tag1", time, {"a"=>2}
+    records = [
+      ["tag1", time, {"a"=>1}],
+      ["tag1", time, {"a"=>2}],
+    ]
 
+    d.expected_emits_length = records.length
+    d.run_timeout = 2
     d.run do
       entries = ''
-      d.expected_emits.each {|tag,time,record|
+      records.each {|tag,time,record|
         Fluent::Engine.msgpack_factory.packer(entries).write([time, record]).flush
       }
       send_data Fluent::Engine.msgpack_factory.packer.write(["tag1", entries]).to_s
     end
+    assert_equal(records, d.emits)
   end
 
   def test_packed_forward_with_skip_invalid_event
@@ -197,11 +242,15 @@ class ForwardInputTest < Test::Unit::TestCase
 
     time = Fluent::EventTime.parse("2011-01-02 13:14:15 UTC")
 
-    d.expect_emit "tag1", time, {"a" => 1}
-    d.expect_emit "tag1", time, {"a" => 2}
+    records = [
+      ["tag1", time, {"a" => 1}],
+      ["tag1", time, {"a" => 2}],
+    ]
 
+    d.expected_emits_length = records.length
+    d.run_timeout = 2
     d.run do
-      entries = d.expected_emits.map { |tag ,time, record| [time, record] }
+      entries = records.map { |tag ,time, record| [time, record] }
       # These entries are skipped
       entries << ['invalid time', {'a' => 3}] << [time, 'invalid record']
 
@@ -220,14 +269,20 @@ class ForwardInputTest < Test::Unit::TestCase
 
     time = Time.parse("2011-01-02 13:14:15 UTC").to_i
 
-    d.expect_emit "tag1", time, {"a"=>1}
-    d.expect_emit "tag2", time, {"a"=>2}
+    records = [
+      ["tag1", time, {"a"=>1}],
+      ["tag2", time, {"a"=>2}],
+    ]
 
+    d.expected_emits_length = records.length
+    d.run_timeout = 2
     d.run do
-      d.expected_emits.each {|tag,time,record|
+      records.each {|tag,time,record|
         send_data [tag, time, record].to_json
       }
     end
+
+    assert_equal(records, d.emits.sort_by{|a, b| a[1] <=> b[1] })
   end
 
   def test_send_large_chunk_warning
@@ -461,7 +516,7 @@ class ForwardInputTest < Test::Unit::TestCase
     end
 
     assert_equal events, d.emits
-    assert_equal [nil, nil], @responses
+    assert_equal ["", ""], @responses
   end
 
   def test_not_respond_to_forward_not_requiring_ack
@@ -484,7 +539,7 @@ class ForwardInputTest < Test::Unit::TestCase
     end
 
     assert_equal events, d.emits
-    assert_equal [nil], @responses
+    assert_equal [""], @responses
   end
 
   def test_not_respond_to_packed_forward_not_requiring_ack
@@ -507,7 +562,7 @@ class ForwardInputTest < Test::Unit::TestCase
     end
 
     assert_equal events, d.emits
-    assert_equal [nil], @responses
+    assert_equal [""], @responses
   end
 
   def test_not_respond_to_message_json_not_requiring_ack
@@ -528,7 +583,7 @@ class ForwardInputTest < Test::Unit::TestCase
     end
 
     assert_equal events, d.emits
-    assert_equal [nil, nil], @responses
+    assert_equal ["", ""], @responses
   end
 
   # res
