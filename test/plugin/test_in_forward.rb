@@ -209,8 +209,22 @@ class ForwardInputTest < Test::Unit::TestCase
       assert_equal(records, d.emits)
     end
 
-    def test_time_as_integer
-      d = create_driver
+    data(tcp: {
+           config: CONFIG,
+           options: {
+             auth: false
+           }
+         },
+         auth: {
+           config: CONFIG_AUTH,
+           options: {
+             auth: true
+           }
+         })
+    def test_time_as_integer(data)
+      config = data[:config]
+      options = data[:options]
+      d = create_driver(config)
 
       time = Time.parse("2011-01-02 13:14:15 UTC").to_i
 
@@ -226,14 +240,28 @@ class ForwardInputTest < Test::Unit::TestCase
         records.each {|tag,time,record|
           entries << [time, record]
         }
-        send_data packer.write(["tag1", entries]).to_s
+        send_data packer.write(["tag1", entries]).to_s, **options
       end
 
       assert_equal(records, d.emits)
     end
 
-    def test_skip_invalid_event
-      d = create_driver(CONFIG + "skip_invalid_event true")
+    data(tcp: {
+           config: CONFIG,
+           options: {
+             auth: false
+           }
+         },
+         auth: {
+           config: CONFIG_AUTH,
+           options: {
+             auth: true
+           }
+         })
+    def test_skip_invalid_event(data)
+      config = data[:config]
+      options = data[:options]
+      d = create_driver(config + "skip_invalid_event true")
 
       time = Fluent::EventTime.parse("2011-01-02 13:14:15 UTC")
 
@@ -249,7 +277,7 @@ class ForwardInputTest < Test::Unit::TestCase
         # These entries are skipped
         entries << ['invalid time', {'a' => 3}] << [time, 'invalid record']
 
-        send_data packer.write(["tag1", entries]).to_s
+        send_data packer.write(["tag1", entries]).to_s, **options
       end
 
       assert_equal 2, d.instance.log.logs.count { |line| line =~ /skip invalid event/ }
@@ -257,8 +285,22 @@ class ForwardInputTest < Test::Unit::TestCase
   end
 
   class PackedForward < self
-    def test_plain
-      d = create_driver
+    data(tcp: {
+           config: CONFIG,
+           options: {
+             auth: false
+           }
+         },
+         auth: {
+           config: CONFIG_AUTH,
+           options: {
+             auth: true
+           }
+         })
+    def test_plain(data)
+      config = data[:config]
+      options = data[:options]
+      d = create_driver(config)
 
       time = Fluent::EventTime.parse("2011-01-02 13:14:15 UTC")
 
@@ -274,13 +316,27 @@ class ForwardInputTest < Test::Unit::TestCase
         records.each {|tag,time,record|
           packer(entries).write([time, record]).flush
         }
-        send_data packer.write(["tag1", entries]).to_s
+        send_data packer.write(["tag1", entries]).to_s, **options
       end
       assert_equal(records, d.emits)
     end
 
-    def test_time_as_integer
-      d = create_driver
+    data(tcp: {
+           config: CONFIG,
+           options: {
+             auth: false
+           }
+         },
+         auth: {
+           config: CONFIG_AUTH,
+           options: {
+             auth: true
+           }
+         })
+    def test_time_as_integer(data)
+      config = data[:config]
+      options = data[:options]
+      d = create_driver(config)
 
       time = Time.parse("2011-01-02 13:14:15 UTC").to_i
 
@@ -296,13 +352,27 @@ class ForwardInputTest < Test::Unit::TestCase
         records.each {|tag,time,record|
           packer(entries).write([time, record]).flush
         }
-        send_data packer.write(["tag1", entries]).to_s
+        send_data packer.write(["tag1", entries]).to_s, **options
       end
       assert_equal(records, d.emits)
     end
 
-    def test_skip_invalid_event
-      d = create_driver(CONFIG + "skip_invalid_event true")
+    data(tcp: {
+           config: CONFIG,
+           options: {
+             auth: false
+           }
+         },
+         auth: {
+           config: CONFIG_AUTH,
+           options: {
+             auth: true
+           }
+         })
+    def test_skip_invalid_event(data)
+      config = data[:config]
+      options = data[:options]
+      d = create_driver(config + "skip_invalid_event true")
 
       time = Fluent::EventTime.parse("2011-01-02 13:14:15 UTC")
 
@@ -322,7 +392,7 @@ class ForwardInputTest < Test::Unit::TestCase
         entries.each { |time, record|
           packer(packed_entries).write([time, record]).flush
         }
-        send_data packer.write(["tag1", packed_entries]).to_s
+        send_data packer.write(["tag1", packed_entries]).to_s, **options
       end
 
       assert_equal 2, d.instance.log.logs.count { |line| line =~ /skip invalid event/ }
@@ -439,8 +509,22 @@ class ForwardInputTest < Test::Unit::TestCase
   end
 
   class RespondToRequiringAck < self
-    def test_message
-      d = create_driver
+    data(tcp: {
+           config: CONFIG,
+           options: {
+             auth: false
+           }
+         },
+         auth: {
+           config: CONFIG_AUTH,
+           options: {
+             auth: true
+           }
+         })
+    def test_message(data)
+      config = data[:config]
+      options = data[:options]
+      d = create_driver(config)
 
       time = Fluent::EventTime.parse("2011-01-02 13:14:15 UTC")
 
@@ -456,7 +540,7 @@ class ForwardInputTest < Test::Unit::TestCase
         events.each {|tag,time,record|
           op = { 'chunk' => Base64.encode64(record.object_id.to_s) }
           expected_acks << op['chunk']
-          send_data [tag, time, record, op].to_msgpack, try_to_receive_response: true
+          send_data [tag, time, record, op].to_msgpack, try_to_receive_response: true, **options
         }
       end
 
@@ -465,8 +549,22 @@ class ForwardInputTest < Test::Unit::TestCase
     end
 
     # FIX: response is not pushed into @responses because IO.select has been blocked until InputForward shutdowns
-    def test_forward
-      d = create_driver
+    data(tcp: {
+           config: CONFIG,
+           options: {
+             auth: false
+           }
+         },
+         auth: {
+           config: CONFIG_AUTH,
+           options: {
+             auth: true
+           }
+         })
+    def test_forward(data)
+      config = data[:config]
+      options = data[:options]
+      d = create_driver(config)
 
       time = Fluent::EventTime.parse("2011-01-02 13:14:15 UTC")
 
@@ -485,15 +583,29 @@ class ForwardInputTest < Test::Unit::TestCase
         }
         op = { 'chunk' => Base64.encode64(entries.object_id.to_s) }
         expected_acks << op['chunk']
-        send_data ["tag1", entries, op].to_msgpack, try_to_receive_response: true
+        send_data ["tag1", entries, op].to_msgpack, try_to_receive_response: true, **options
       end
 
       assert_equal events, d.emits
       assert_equal expected_acks, @responses.map { |res| MessagePack.unpack(res)['ack'] }
     end
 
+    data(tcp: {
+           config: CONFIG,
+           options: {
+             auth: false
+           }
+         },
+         auth: {
+           config: CONFIG_AUTH,
+           options: {
+             auth: true
+           }
+         })
     def test_packed_forward
-      d = create_driver
+      config = data[:config]
+      options = data[:options]
+      d = create_driver(config)
 
       time = Fluent::EventTime.parse("2011-01-02 13:14:15 UTC")
 
@@ -512,15 +624,30 @@ class ForwardInputTest < Test::Unit::TestCase
         }
         op = { 'chunk' => Base64.encode64(entries.object_id.to_s) }
         expected_acks << op['chunk']
-        send_data ["tag1", entries, op].to_msgpack, try_to_receive_response: true
+        send_data ["tag1", entries, op].to_msgpack, try_to_receive_response: true, **options
       end
 
       assert_equal events, d.emits
       assert_equal expected_acks, @responses.map { |res| MessagePack.unpack(res)['ack'] }
     end
 
-    def test_message_json
-      d = create_driver
+    data(tcp: {
+           config: CONFIG,
+           options: {
+             auth: false
+           }
+         },
+         auth: {
+           config: CONFIG_AUTH,
+           options: {
+             auth: true
+           }
+         })
+    def test_message_json(data)
+      config = data[:config]
+      options = data[:options]
+      omit "with json, auth doen NOT work" if options[:auth]
+      d = create_driver(config)
 
       time = Time.parse("2011-01-02 13:14:15 UTC").to_i
 
@@ -532,11 +659,13 @@ class ForwardInputTest < Test::Unit::TestCase
 
       expected_acks = []
 
+      d.expected_emits_length = events.length
+      d.run_timeout = 2
       d.run do
         events.each {|tag,time,record|
           op = { 'chunk' => Base64.encode64(record.object_id.to_s) }
           expected_acks << op['chunk']
-          send_data [tag, time, record, op].to_json, try_to_receive_response: true
+          send_data [tag, time, record, op].to_json, try_to_receive_response: true, **options
         }
       end
 
@@ -546,8 +675,22 @@ class ForwardInputTest < Test::Unit::TestCase
   end
 
   class NotRespondToNotRequiringAck < self
+    data(tcp: {
+           config: CONFIG,
+           options: {
+             auth: false
+           }
+         },
+         auth: {
+           config: CONFIG_AUTH,
+           options: {
+             auth: true
+           }
+         })
     def test_message
-      d = create_driver
+      config = data[:config]
+      options = data[:options]
+      d = create_driver(config)
 
       time = Fluent::EventTime.parse("2011-01-02 13:14:15 UTC")
 
@@ -559,7 +702,7 @@ class ForwardInputTest < Test::Unit::TestCase
 
       d.run do
         events.each {|tag,time,record|
-          send_data [tag, time, record].to_msgpack, try_to_receive_response: true
+          send_data [tag, time, record].to_msgpack, try_to_receive_response: true, **options
         }
       end
 
@@ -567,8 +710,22 @@ class ForwardInputTest < Test::Unit::TestCase
       assert_equal ["", ""], @responses
     end
 
-    def test_forward
-      d = create_driver
+    data(tcp: {
+           config: CONFIG,
+           options: {
+             auth: false
+           }
+         },
+         auth: {
+           config: CONFIG_AUTH,
+           options: {
+             auth: true
+           }
+         })
+    def test_forward(data)
+      config = data[:config]
+      options = data[:options]
+      d = create_driver(config)
 
       time = Fluent::EventTime.parse("2011-01-02 13:14:15 UTC")
 
@@ -583,15 +740,29 @@ class ForwardInputTest < Test::Unit::TestCase
         events.each {|tag,time,record|
           entries << [time, record]
         }
-        send_data ["tag1", entries].to_msgpack, try_to_receive_response: true
+        send_data ["tag1", entries].to_msgpack, try_to_receive_response: true, **options
       end
 
       assert_equal events, d.emits
       assert_equal [""], @responses
     end
 
-    def test_packed_forward
-      d = create_driver
+    data(tcp: {
+           config: CONFIG,
+           options: {
+             auth: false
+           }
+         },
+         auth: {
+           config: CONFIG_AUTH,
+           options: {
+             auth: true
+           }
+         })
+    def test_packed_forward(data)
+      config = data[:config]
+      options = data[:options]
+      d = create_driver(config)
 
       time = Fluent::EventTime.parse("2011-01-02 13:14:15 UTC")
 
@@ -606,15 +777,30 @@ class ForwardInputTest < Test::Unit::TestCase
         events.each {|tag,time,record|
           [time, record].to_msgpack(entries)
         }
-        send_data ["tag1", entries].to_msgpack, try_to_receive_response: true
+        send_data ["tag1", entries].to_msgpack, try_to_receive_response: true, **options
       end
 
       assert_equal events, d.emits
       assert_equal [""], @responses
     end
 
-    def test_message_json
-      d = create_driver
+    data(tcp: {
+           config: CONFIG,
+           options: {
+             auth: false
+           }
+         },
+         auth: {
+           config: CONFIG_AUTH,
+           options: {
+             auth: true
+           }
+         })
+    def test_message_json(data)
+      config = data[:config]
+      options = data[:options]
+      omit "with json, auth doen NOT work" if options[:auth]
+      d = create_driver(config)
 
       time = Time.parse("2011-01-02 13:14:15 UTC").to_i
 
@@ -626,7 +812,7 @@ class ForwardInputTest < Test::Unit::TestCase
 
       d.run do
         events.each {|tag,time,record|
-          send_data [tag, time, record].to_json, try_to_receive_response: true
+          send_data [tag, time, record].to_json, try_to_receive_response: true, **options
         }
       end
 
