@@ -119,7 +119,7 @@ class ForwardInputTest < Test::Unit::TestCase
 
         entries.each { |tag, time, record|
           # Without ack, logs are sometimes not saved to logs during test.
-          send_data packer.write([tag, time, record]).to_s, true
+          send_data packer.write([tag, time, record]).to_s, try_to_receive_response: true
         }
       end
 
@@ -420,7 +420,7 @@ class ForwardInputTest < Test::Unit::TestCase
         events.each {|tag,time,record|
           op = { 'chunk' => Base64.encode64(record.object_id.to_s) }
           expected_acks << op['chunk']
-          send_data [tag, time, record, op].to_msgpack, true
+          send_data [tag, time, record, op].to_msgpack, try_to_receive_response: true
         }
       end
 
@@ -449,7 +449,7 @@ class ForwardInputTest < Test::Unit::TestCase
         }
         op = { 'chunk' => Base64.encode64(entries.object_id.to_s) }
         expected_acks << op['chunk']
-        send_data ["tag1", entries, op].to_msgpack, true
+        send_data ["tag1", entries, op].to_msgpack, try_to_receive_response: true
       end
 
       assert_equal events, d.emits
@@ -476,7 +476,7 @@ class ForwardInputTest < Test::Unit::TestCase
         }
         op = { 'chunk' => Base64.encode64(entries.object_id.to_s) }
         expected_acks << op['chunk']
-        send_data ["tag1", entries, op].to_msgpack, true
+        send_data ["tag1", entries, op].to_msgpack, try_to_receive_response: true
       end
 
       assert_equal events, d.emits
@@ -500,7 +500,7 @@ class ForwardInputTest < Test::Unit::TestCase
         events.each {|tag,time,record|
           op = { 'chunk' => Base64.encode64(record.object_id.to_s) }
           expected_acks << op['chunk']
-          send_data [tag, time, record, op].to_json, true
+          send_data [tag, time, record, op].to_json, try_to_receive_response: true
         }
       end
 
@@ -523,7 +523,7 @@ class ForwardInputTest < Test::Unit::TestCase
 
       d.run do
         events.each {|tag,time,record|
-          send_data [tag, time, record].to_msgpack, true
+          send_data [tag, time, record].to_msgpack, try_to_receive_response: true
         }
       end
 
@@ -547,7 +547,7 @@ class ForwardInputTest < Test::Unit::TestCase
         events.each {|tag,time,record|
           entries << [time, record]
         }
-        send_data ["tag1", entries].to_msgpack, true
+        send_data ["tag1", entries].to_msgpack, try_to_receive_response: true
       end
 
       assert_equal events, d.emits
@@ -570,7 +570,7 @@ class ForwardInputTest < Test::Unit::TestCase
         events.each {|tag,time,record|
           [time, record].to_msgpack(entries)
         }
-        send_data ["tag1", entries].to_msgpack, true
+        send_data ["tag1", entries].to_msgpack, try_to_receive_response: true
       end
 
       assert_equal events, d.emits
@@ -590,7 +590,7 @@ class ForwardInputTest < Test::Unit::TestCase
 
       d.run do
         events.each {|tag,time,record|
-          send_data [tag, time, record].to_json, true
+          send_data [tag, time, record].to_json, try_to_receive_response: true
         }
       end
 
@@ -684,7 +684,7 @@ class ForwardInputTest < Test::Unit::TestCase
   #  Records in different sockets are processed on different thread, so its scheduling make effect
   #  on order of emitted records.
   #  So, we MUST sort emitted records in different `send_data` before assertion.
-  def send_data(data, try_to_receive_response=false, response_timeout=5, auth: false)
+  def send_data(data, try_to_receive_response: false, response_timeout: 5, auth: false)
     io = connect
 
     if auth
