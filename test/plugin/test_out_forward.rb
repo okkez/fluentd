@@ -134,8 +134,10 @@ class ForwardOutputTest < Test::Unit::TestCase
       d.instance.responses.length == 1
     end
 
-    target_input_driver.run do
-      d.run do
+    target_input_driver.expected_emits_length = records.length
+    target_input_driver.run_timeout = 2
+    d.run do
+      target_input_driver.run do
         records.each do |record|
           d.emit record, time
         end
@@ -170,8 +172,10 @@ class ForwardOutputTest < Test::Unit::TestCase
       d.instance.responses.length == 1
     end
 
-    target_input_driver.run do
-      d.run do
+    target_input_driver.expected_emits_length = records.length
+    target_input_driver.run_timeout = 2
+    d.run do
+      target_input_driver.run do
         records.each do |record|
           d.emit record, time
         end
@@ -189,7 +193,7 @@ class ForwardOutputTest < Test::Unit::TestCase
   end
 
   def test_send_to_a_node_supporting_responses
-    target_input_driver = create_target_input_driver(true)
+    target_input_driver = create_target_input_driver(->(options){ nil })
 
     d = create_driver(CONFIG + %[flush_interval 1s])
 
@@ -203,8 +207,10 @@ class ForwardOutputTest < Test::Unit::TestCase
       d.instance.responses.length == 1
     end
 
-    target_input_driver.run do
-      d.run do
+    target_input_driver.expected_emits_length = records.length
+    target_input_driver.run_timeout = 2
+    d.run do
+      target_input_driver.run do
         records.each do |record|
           d.emit record, time
         end
@@ -234,8 +240,10 @@ class ForwardOutputTest < Test::Unit::TestCase
       d.instance.responses.length == 1
     end
 
-    target_input_driver.run do
-      d.run do
+    target_input_driver.expected_emits_length = records.length
+    target_input_driver.run_timeout = 2
+    d.run do
+      target_input_driver.run do
         records.each do |record|
           d.emit record, time
         end
