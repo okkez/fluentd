@@ -236,7 +236,7 @@ class TailInputTest < Test::Unit::TestCase
   end
 
   def test_rotate_file
-    events = sub_test_rotate_file(SINGLE_LINE_CONFIG)
+    events = sub_test_rotate_file(SINGLE_LINE_CONFIG, expect_emits: 1)
     assert_equal(4, events.length)
     assert_equal({"message" => "test3"}, events[0][2])
     assert_equal({"message" => "test4"}, events[1][2])
@@ -245,7 +245,7 @@ class TailInputTest < Test::Unit::TestCase
   end
 
   def test_rotate_file_with_read_from_head
-    events = sub_test_rotate_file(CONFIG_READ_FROM_HEAD + SINGLE_LINE_CONFIG)
+    events = sub_test_rotate_file(CONFIG_READ_FROM_HEAD + SINGLE_LINE_CONFIG, expect_emits: 1)
     assert_equal(6, events.length)
     assert_equal({"message" => "test1"}, events[0][2])
     assert_equal({"message" => "test2"}, events[1][2])
@@ -256,7 +256,7 @@ class TailInputTest < Test::Unit::TestCase
   end
 
   def test_rotate_file_with_write_old
-    events = sub_test_rotate_file(SINGLE_LINE_CONFIG) { |rotated_file|
+    events = sub_test_rotate_file(SINGLE_LINE_CONFIG, expect_emits: 1) { |rotated_file|
       File.open("#{TMP_DIR}/tail.txt", "wb") { |f| }
       rotated_file.puts "test7"
       rotated_file.puts "test8"
@@ -278,7 +278,7 @@ class TailInputTest < Test::Unit::TestCase
   end
 
   def test_rotate_file_with_write_old_and_no_new_file
-    events = sub_test_rotate_file(SINGLE_LINE_CONFIG) { |rotated_file|
+    events = sub_test_rotate_file(SINGLE_LINE_CONFIG, expect_emits: 1) { |rotated_file|
       rotated_file.puts "test7"
       rotated_file.puts "test8"
       rotated_file.flush
@@ -290,14 +290,14 @@ class TailInputTest < Test::Unit::TestCase
     assert_equal({"message" => "test8"}, events[3][2])
   end
 
-  def sub_test_rotate_file(config = nil)
+  def sub_test_rotate_file(config = nil, expect_emits: nil, expect_records: nil, timeout: nil)
     file = Fluent::FileWrapper.open("#{TMP_DIR}/tail.txt", "wb")
     file.puts "test1"
     file.puts "test2"
     file.flush
 
     d = create_driver(config)
-    d.run do
+    d.run(expect_emits: expect_emits, expect_records: expect_records, timeout: timeout) do
       sleep 1
 
       file.puts "test3"
