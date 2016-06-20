@@ -14,19 +14,18 @@
 #    limitations under the License.
 #
 
-require 'test/unit'
-require 'fluent/env' # for Fluent.windows?
-require 'fluent/test/base'
-require 'fluent/test/input_test'
-require 'fluent/test/output_test'
-require 'fluent/test/filter_test'
-require 'fluent/test/parser_test'
-require 'fluent/test/formatter_test'
-require 'fluent/test/startup_shutdown'
-require 'serverengine'
+module Fluent
+  module Test
+    module StartupShutdown
+      def startup
+        socket_manager_path = ServerEngine::SocketManager::Server.generate_path
+        @server = ServerEngine::SocketManager::Server.open(socket_manager_path)
+        ENV['SERVERENGINE_SOCKETMANAGER_PATH'] = socket_manager_path.to_s
+      end
 
-dl_opts = {}
-dl_opts[:log_level] = ServerEngine::DaemonLogger::INFO
-logdev = Fluent::Test::DummyLogDevice.new
-logger = ServerEngine::DaemonLogger.new(logdev, dl_opts)
-$log ||= Fluent::Log.new(logger)
+      def shutdown
+        @server.close
+      end
+    end    
+  end
+end
