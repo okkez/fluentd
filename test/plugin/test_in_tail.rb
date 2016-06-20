@@ -278,7 +278,7 @@ class TailInputTest < Test::Unit::TestCase
   end
 
   def test_rotate_file_with_write_old_and_no_new_file
-    events = sub_test_rotate_file(SINGLE_LINE_CONFIG, expect_emits: 1) { |rotated_file|
+    events = sub_test_rotate_file(SINGLE_LINE_CONFIG, expect_emits: 2) { |rotated_file|
       rotated_file.puts "test7"
       rotated_file.puts "test8"
       rotated_file.flush
@@ -298,19 +298,16 @@ class TailInputTest < Test::Unit::TestCase
 
     d = create_driver(config)
     d.run(expect_emits: expect_emits, expect_records: expect_records, timeout: timeout) do
-      sleep 1
-
       file.puts "test3"
       file.puts "test4"
       file.flush
-      sleep 1
+      sleep(0.1) until d.event_streams.size >= 1
 
       FileUtils.mv("#{TMP_DIR}/tail.txt", "#{TMP_DIR}/tail2.txt")
       if block_given?
         yield file
-        sleep 1
+        sleep(0.1) until d.stop?
       else
-        sleep 1
         File.open("#{TMP_DIR}/tail.txt", "wb") { |f| }
         sleep 1
 
@@ -318,12 +315,8 @@ class TailInputTest < Test::Unit::TestCase
           f.puts "test5"
           f.puts "test6"
         }
-        sleep 1
+        sleep(0.1) until d.event_streams.size >= 2
       end
-    end
-
-    d.run do
-      sleep 1
     end
 
     d.events
