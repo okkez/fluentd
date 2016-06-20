@@ -236,7 +236,7 @@ class TailInputTest < Test::Unit::TestCase
   end
 
   def test_rotate_file
-    events = sub_test_rotate_file(SINGLE_LINE_CONFIG)
+    events = sub_test_rotate_file(SINGLE_LINE_CONFIG, expect_emits: 1)
     assert_equal(4, events.length)
     assert_equal({"message" => "test3"}, events[0][2])
     assert_equal({"message" => "test4"}, events[1][2])
@@ -245,7 +245,7 @@ class TailInputTest < Test::Unit::TestCase
   end
 
   def test_rotate_file_with_read_from_head
-    events = sub_test_rotate_file(CONFIG_READ_FROM_HEAD + SINGLE_LINE_CONFIG)
+    events = sub_test_rotate_file(CONFIG_READ_FROM_HEAD + SINGLE_LINE_CONFIG, expect_emits: 1)
     assert_equal(6, events.length)
     assert_equal({"message" => "test1"}, events[0][2])
     assert_equal({"message" => "test2"}, events[1][2])
@@ -256,7 +256,7 @@ class TailInputTest < Test::Unit::TestCase
   end
 
   def test_rotate_file_with_write_old
-    events = sub_test_rotate_file(SINGLE_LINE_CONFIG) { |rotated_file|
+    events = sub_test_rotate_file(SINGLE_LINE_CONFIG, expect_emits: 3) { |rotated_file|
       File.open("#{TMP_DIR}/tail.txt", "wb") { |f| }
       rotated_file.puts "test7"
       rotated_file.puts "test8"
@@ -278,7 +278,7 @@ class TailInputTest < Test::Unit::TestCase
   end
 
   def test_rotate_file_with_write_old_and_no_new_file
-    events = sub_test_rotate_file(SINGLE_LINE_CONFIG) { |rotated_file|
+    events = sub_test_rotate_file(SINGLE_LINE_CONFIG, expect_emits: 2) { |rotated_file|
       rotated_file.puts "test7"
       rotated_file.puts "test8"
       rotated_file.flush
@@ -290,27 +290,26 @@ class TailInputTest < Test::Unit::TestCase
     assert_equal({"message" => "test8"}, events[3][2])
   end
 
-  def sub_test_rotate_file(config = nil)
+  def sub_test_rotate_file(config = nil, expect_emits: nil, expect_records: nil, timeout: nil)
     file = Fluent::FileWrapper.open("#{TMP_DIR}/tail.txt", "wb")
     file.puts "test1"
     file.puts "test2"
     file.flush
 
     d = create_driver(config)
-    d.run do
-      sleep 1
-
+    d.run(expect_emits: expect_emits, expect_records: expect_records, timeout: timeout) do
+      size = d.event_streams.size
       file.puts "test3"
       file.puts "test4"
       file.flush
-      sleep 1
+      sleep(0.1) until d.event_streams.size >= size + 1
+      size = d.event_streams.size
 
       FileUtils.mv("#{TMP_DIR}/tail.txt", "#{TMP_DIR}/tail2.txt")
       if block_given?
         yield file
-        sleep 1
+        sleep(0.1) until d.stop?
       else
-        sleep 1
         File.open("#{TMP_DIR}/tail.txt", "wb") { |f| }
         sleep 1
 
@@ -318,12 +317,8 @@ class TailInputTest < Test::Unit::TestCase
           f.puts "test5"
           f.puts "test6"
         }
-        sleep 1
+        sleep(0.1) until d.event_streams.size >= size + 1
       end
-    end
-
-    d.run do
-      sleep 1
     end
 
     d.events
@@ -413,7 +408,7 @@ class TailInputTest < Test::Unit::TestCase
       format1 /^s (?<message1>[^\\n]+)(\\nf (?<message2>[^\\n]+))?(\\nf (?<message3>.*))?/
       format_firstline /^[s]/
     ]
-    d.run do
+    d.run(expect_emits: 1) do
       File.open("#{TMP_DIR}/tail.txt", "ab") { |f|
         f.puts "f test1"
         f.puts "s test2"
@@ -424,21 +419,14 @@ class TailInputTest < Test::Unit::TestCase
         f.puts "f test7"
         f.puts "s test8"
       }
-      sleep 1
-
-      events = d.events
-      assert_equal(3, events.length)
-      assert_equal({"message1" => "test2", "message2" => "test3", "message3" => "test4"}, events[0][2])
-      assert_equal({"message1" => "test5"}, events[1][2])
-      assert_equal({"message1" => "test6", "message2" => "test7"}, events[2][2])
-
-      sleep 3
-      events = d.events
-      assert_equal(3, events.length)
+      sleep(0.1) until d.stop?
     end
 
     events = d.events
     assert_equal(4, events.length)
+    assert_equal({"message1" => "test2", "message2" => "test3", "message3" => "test4"}, events[0][2])
+    assert_equal({"message1" => "test5"}, events[1][2])
+    assert_equal({"message1" => "test6", "message2" => "test7"}, events[2][2])
     assert_equal({"message1" => "test8"}, events[3][2])
   end
 
@@ -454,7 +442,7 @@ class TailInputTest < Test::Unit::TestCase
 
     assert_equal 2, d.instance.multiline_flush_interval
 
-    d.run do
+    d.run(expect_emits: 1) do
       File.open("#{TMP_DIR}/tail.txt", "ab") { |f|
         f.puts "f test1"
         f.puts "s test2"
@@ -465,19 +453,15 @@ class TailInputTest < Test::Unit::TestCase
         f.puts "f test7"
         f.puts "s test8"
       }
-      sleep 1
-
-      events = d.events
-      assert_equal(3, events.length)
-      assert_equal({"message1" => "test2", "message2" => "test3", "message3" => "test4"}, events[0][2])
-      assert_equal({"message1" => "test5"}, events[1][2])
-      assert_equal({"message1" => "test6", "message2" => "test7"}, events[2][2])
-
-      sleep 3
-      events = d.events
-      assert_equal(4, events.length)
-      assert_equal({"message1" => "test8"}, events[3][2])
+      sleep(0.1) until d.stop?
     end
+
+    events = d.events
+    assert_equal(4, events.length)
+    assert_equal({"message1" => "test2", "message2" => "test3", "message3" => "test4"}, events[0][2])
+    assert_equal({"message1" => "test5"}, events[1][2])
+    assert_equal({"message1" => "test6", "message2" => "test7"}, events[2][2])
+    assert_equal({"message1" => "test8"}, events[3][2])
   end
 
   data(
@@ -495,16 +479,16 @@ class TailInputTest < Test::Unit::TestCase
       #{encoding_config}
     ]
 
-    d.run do
+    d.run(expect_emits: 1) do
       File.open("#{TMP_DIR}/tail.txt", "wb") { |f|
         f.puts "s test"
       }
-
-      sleep 4
-      events = d.events
-      assert_equal(1, events.length)
-      assert_equal(encoding, events[0][2]['message1'].encoding)
+      sleep(0.1) until d.stop?
     end
+
+    events = d.events
+    assert_equal(1, events.length)
+    assert_equal(encoding, events[0][2]['message1'].encoding)
   end
 
   def test_multiline_with_multiple_formats
@@ -517,7 +501,7 @@ class TailInputTest < Test::Unit::TestCase
       format3 /(f (?<message3>.*))?/
       format_firstline /^[s]/
     ]
-    d.run do
+    d.run(expect_emits: 1) do
       File.open("#{TMP_DIR}/tail.txt", "ab") { |f|
         f.puts "f test1"
         f.puts "s test2"
@@ -528,7 +512,7 @@ class TailInputTest < Test::Unit::TestCase
         f.puts "f test7"
         f.puts "s test8"
       }
-      sleep 1
+      sleep(0.1) until d.stop?
     end
 
     events = d.events
@@ -550,7 +534,7 @@ class TailInputTest < Test::Unit::TestCase
       format1 /^[s|f] (?<message>.*)/
       format_firstline /^[s]/
     ], false)
-    d.run do
+    d.run(expect_emits: 2) do
       files.each do |file|
         File.open(file, 'ab') { |f|
           f.puts "f #{file} line should be ignored"
@@ -560,7 +544,7 @@ class TailInputTest < Test::Unit::TestCase
           f.puts "s test4"
         }
       end
-      sleep 1
+      sleep(0.1) until d.stop?
     end
 
     events = d.events
@@ -580,7 +564,7 @@ class TailInputTest < Test::Unit::TestCase
       format2 /(?<var2>bar \\d)\\n/
       format3 /(?<var3>baz \\d)/
     ]
-    d.run do
+    d.run(expect_emits: 1) do
       File.open("#{TMP_DIR}/tail.txt", "ab") { |f|
         f.puts "foo 1"
         f.puts "bar 1"
@@ -589,7 +573,7 @@ class TailInputTest < Test::Unit::TestCase
         f.puts "bar 2"
         f.puts "baz 2"
       }
-      sleep 1
+      sleep(0.1) until d.stop?
     end
 
     events = d.events
@@ -754,13 +738,13 @@ class TailInputTest < Test::Unit::TestCase
     config2 = config1 + '  read_from_head true'
     [config1, config2].each do |config|
       d = create_driver(config, false)
-      d.run do
+      d.run(expect_emits: 1) do
         sleep 1
         File.open("#{TMP_DIR}/tail.txt", "ab") {|f|
           f.puts "test3"
           f.puts "test4"
         }
-        sleep 1
+        sleep(0.1) until d.stop?
       end
       events = d.events
       assert_equal(2, events.length)
@@ -778,14 +762,12 @@ class TailInputTest < Test::Unit::TestCase
 
       d = create_driver(%[path_key path] + SINGLE_LINE_CONFIG)
 
-      d.run do
-        sleep 1
-
+      d.run(expect_emits: 1) do
         File.open("#{TMP_DIR}/tail.txt", "ab") {|f|
           f.puts "test3"
           f.puts "test4"
         }
-        sleep 1
+        sleep(0.1) until d.stop?
       end
 
       events = d.events
@@ -804,7 +786,7 @@ class TailInputTest < Test::Unit::TestCase
         format1 /^s (?<message1>[^\\n]+)(\\nf (?<message2>[^\\n]+))?(\\nf (?<message3>.*))?/
         format_firstline /^[s]/
       ]
-      d.run do
+      d.run(expect_emits: 1) do
         File.open("#{TMP_DIR}/tail.txt", "ab") { |f|
           f.puts "f test1"
           f.puts "s test2"
@@ -815,7 +797,7 @@ class TailInputTest < Test::Unit::TestCase
           f.puts "f test7"
           f.puts "s test8"
         }
-        sleep 1
+        sleep(0.1) until d.stop?
       end
 
       events = d.events
@@ -835,13 +817,13 @@ class TailInputTest < Test::Unit::TestCase
         format2 /(?<var2>bar \\d)\\n/
         format3 /(?<var3>baz \\d)/
       ]
-      d.run do
+      d.run(expect_emits: 1) do
         File.open("#{TMP_DIR}/tail.txt", "ab") { |f|
           f.puts "foo 1"
           f.puts "bar 1"
           f.puts "baz 1"
         }
-        sleep 1
+        sleep(0.1) until d.stop?
       end
 
       events = d.events
@@ -863,7 +845,7 @@ class TailInputTest < Test::Unit::TestCase
         format1 /^[s|f] (?<message>.*)/
         format_firstline /^[s]/
       ], false)
-      d.run do
+      d.run(expect_emits: 2) do
         files.each do |file|
           File.open(file, 'ab') { |f|
             f.puts "f #{file} line should be ignored"
@@ -873,7 +855,7 @@ class TailInputTest < Test::Unit::TestCase
             f.puts "s test4"
           }
         end
-        sleep 1
+        sleep(0.1) until d.stop?
       end
 
       events = d.events
