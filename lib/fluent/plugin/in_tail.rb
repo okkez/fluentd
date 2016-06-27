@@ -34,6 +34,8 @@ module Fluent::Plugin
 
     Fluent::Plugin.register_input('tail', self)
 
+    helpers :timer
+
     FILE_PERMISSION = 0644
 
     def initialize
@@ -126,20 +128,12 @@ module Fluent::Plugin
         @pf = PositionFile.parse(@pf_file)
       end
 
-      @loop = Coolio::Loop.new
       refresh_watchers
-
-      @refresh_trigger = TailWatcher::TimerWatcher.new(@refresh_interval, true, log, &method(:refresh_watchers))
-      @refresh_trigger.attach(@loop)
-      @thread = Thread.new(&method(:run))
+      timer_execute(:refresh_watchers, @refresh_interval, &method(:refresh_watchers))
     end
 
     def shutdown
-      @refresh_trigger.detach if @refresh_trigger && @refresh_trigger.attached?
-
       stop_watchers(@tails.keys, true)
-      @loop.stop rescue nil # when all watchers are detached, `stop` raises RuntimeError. We can ignore this exception.
-      @thread.join
       @pf_file.close if @pf_file
 
       super
@@ -187,8 +181,8 @@ module Fluent::Plugin
 
     def setup_watcher(path, pe)
       line_buffer_timer_flusher = (@multiline_mode && @multiline_flush_interval) ? TailWatcher::LineBufferTimerFlusher.new(log, @multiline_flush_interval, &method(:flush_buffer)) : nil
-      tw = TailWatcher.new(path, @rotate_wait, pe, log, @read_from_head, @enable_watch_timer, @read_lines_limit, method(:update_watcher), line_buffer_timer_flusher,  &method(:receive_lines))
-      tw.attach(@loop)
+      tw = TailWatcher.new(path, @rotate_wait, pe, log, @read_from_head, @enable_watch_timer, @read_lines_limit, method(:update_watcher), line_buffer_timer_flusher, &method(:receive_lines))
+      tw.attach(@_event_loop)
       tw
     end
 
@@ -244,8 +238,9 @@ module Fluent::Plugin
     end
 
     def close_watcher_after_rotate_wait(tw)
-      closer = TailWatcher::Closer.new(@rotate_wait, tw, log, &method(:close_watcher))
-      closer.attach(@loop)
+      timer_execute(:close_watcher, @rotate_wait, repeat: false) do
+        close_watcher(tw)
+      end
     end
 
     def flush_buffer(tw)
@@ -266,13 +261,6 @@ module Fluent::Plugin
           end
         }
       end
-    end
-
-    def run
-      @loop.run
-    rescue
-      log.error "unexpected error", error: $!.to_s
-      log.error_backtrace
     end
 
     # @return true if no error or unrecoverable error happens in emit action. false if got BufferOverflowError
@@ -521,24 +509,6 @@ module Fluent::Plugin
           # TODO log?
           @log.error $!.to_s
           @log.error_backtrace
-        end
-      end
-
-      class Closer < Coolio::TimerWatcher
-        def initialize(interval, tw, log, &callback)
-          @callback = callback
-          @tw = tw
-          @log = log
-          super(interval, false)
-        end
-
-        def on_timer
-          @callback.call(@tw)
-        rescue => e
-          @log.error e.to_s
-          @log.error_backtrace(e.backtrace)
-        ensure
-          detach
         end
       end
 
