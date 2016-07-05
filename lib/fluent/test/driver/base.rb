@@ -51,7 +51,7 @@ module Fluent
           @error_events = nil
         end
 
-        attr_reader :instance, :logs
+        attr_reader :instance, :logs, :event_streams
 
         def configure(conf, syntax: :v1)
           if conf.is_a?(Fluent::Config::Element)
@@ -197,10 +197,10 @@ module Fluent
           end
 
           if expect_emits
-            @run_post_conditions << ->(){ @emit_streams.size >= expect_emits }
+            @run_post_conditions << ->(){ @event_streams.size >= expect_emits }
           end
           if expect_records
-            @run_post_conditions << ->(){ @emit_streams.reduce(0){|a, e| a + e.es.size } >= expected_records }
+            @run_post_conditions << ->(){ @event_streams.reduce(0){|a, e| a + e.es.size } >= expected_records }
           end
           if timeout
             stop_at = Time.now + timeout
