@@ -97,7 +97,7 @@ class TailInputTest < Test::Unit::TestCase
     assert_equal({"message" => "test4"}, events[1][2])
     assert(events[0][1].is_a?(Fluent::EventTime))
     assert(events[1][1].is_a?(Fluent::EventTime))
-    assert_equal(1, d.event_streams.size)
+    assert_equal(1, d.emit_count)
   end
 
   class TestWithSystem < self
@@ -153,7 +153,7 @@ class TailInputTest < Test::Unit::TestCase
       assert_equal({"message" => "test4"}, events[1][2])
       assert(events[0][1].is_a?(Fluent::EventTime))
       assert(events[1][1].is_a?(Fluent::EventTime))
-      assert_equal(1, d.event_streams.size)
+      assert_equal(1, d.emit_count)
       pos = d.instance.instance_variable_get(:@pf_file)
       mode = "%o" % File.stat(pos).mode
       assert_equal OVERRIDE_FILE_PERMISSION, mode[-3, 3].to_i
@@ -180,7 +180,7 @@ class TailInputTest < Test::Unit::TestCase
     assert_equal(true, events.length > 0)
     assert_equal({"message" => msg}, events[0][2])
     assert_equal({"message" => msg}, events[1][2])
-    assert_equal(num_events, d.event_streams.size)
+    assert_equal(num_events, d.emit_count)
   end
 
   def test_emit_with_read_from_head
@@ -298,12 +298,12 @@ class TailInputTest < Test::Unit::TestCase
 
     d = create_driver(config)
     d.run(expect_emits: expect_emits, expect_records: expect_records, timeout: timeout) do
-      size = d.event_streams.size
+      size = d.emit_count
       file.puts "test3"
       file.puts "test4"
       file.flush
-      sleep(0.1) until d.event_streams.size >= size + 1
-      size = d.event_streams.size
+      sleep(0.1) until d.emit_count >= size + 1
+      size = d.emit_count
 
       if Fluent.windows?
         file.close
@@ -323,7 +323,7 @@ class TailInputTest < Test::Unit::TestCase
           f.puts "test5"
           f.puts "test6"
         }
-        sleep(0.1) until d.event_streams.size >= size + 1
+        sleep(0.1) until d.emit_count >= size + 1
       end
     end
 
