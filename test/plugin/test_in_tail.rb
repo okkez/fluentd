@@ -63,8 +63,6 @@ class TailInputTest < Test::Unit::TestCase
     end
   end
 
-  # TODO: Should using more better approach instead of sleep wait
-
   def test_emit
     File.open("#{TMP_DIR}/tail.txt", "wb") {|f|
       f.puts "test1"
