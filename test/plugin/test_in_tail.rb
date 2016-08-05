@@ -73,14 +73,11 @@ class TailInputTest < Test::Unit::TestCase
 
     d = create_driver
 
-    d.run do
-      sleep 1
-
+    d.run(expect_emits: 1) do
       File.open("#{TMP_DIR}/tail.txt", "ab") {|f|
         f.puts "test3"
         f.puts "test4"
       }
-      sleep 1
     end
 
     events = d.events
@@ -129,14 +126,11 @@ class TailInputTest < Test::Unit::TestCase
 
       d = create_driver
 
-      d.run do
-        sleep 1
-
+      d.run(expect_emits: 1) do
         File.open("#{TMP_DIR}/tail.txt", "ab") {|f|
           f.puts "test3"
           f.puts "test4"
         }
-        sleep 1
       end
 
       events = d.events
@@ -159,14 +153,11 @@ class TailInputTest < Test::Unit::TestCase
     d = create_driver(config)
     msg = 'test' * 500 # in_tail reads 2048 bytes at once.
 
-    d.run do
-      sleep 1
-
+    d.run(expect_emits: 1) do
       File.open("#{TMP_DIR}/tail.txt", "ab") {|f|
         f.puts msg
         f.puts msg
       }
-      sleep 1
     end
 
     events = d.events
@@ -184,14 +175,11 @@ class TailInputTest < Test::Unit::TestCase
 
     d = create_driver(CONFIG_READ_FROM_HEAD + SINGLE_LINE_CONFIG)
 
-    d.run do
-      sleep 1
-
+    d.run(expect_emits: 2) do
       File.open("#{TMP_DIR}/tail.txt", "ab") {|f|
         f.puts "test3"
         f.puts "test4"
       }
-      sleep 1
     end
 
     events = d.events
@@ -210,16 +198,13 @@ class TailInputTest < Test::Unit::TestCase
 
     d = create_driver(CONFIG_ENABLE_WATCH_TIMER + SINGLE_LINE_CONFIG)
 
-    d.run do
-      sleep 1
-
+    d.run(expect_emits: 1) do
       File.open("#{TMP_DIR}/tail.txt", "ab") {|f|
         f.puts "test3"
         f.puts "test4"
       }
       # according to cool.io's stat_watcher.c, systems without inotify will use
       # an "automatic" value, typically around 5 seconds
-      sleep 10
     end
 
     events = d.events
@@ -350,9 +335,7 @@ class TailInputTest < Test::Unit::TestCase
 
     d = create_driver
 
-    d.run do
-      sleep 1
-
+    d.run(expect_emits: 1) do
       File.open("#{TMP_DIR}/tail.txt", "ab") {|f|
         f.puts "    "		# 4 spaces
         f.puts "    4 spaces"
@@ -361,7 +344,6 @@ class TailInputTest < Test::Unit::TestCase
         f.puts "	tab"
         f.puts "tab	"
       }
-      sleep 1
     end
 
     events = d.events
@@ -382,13 +364,10 @@ class TailInputTest < Test::Unit::TestCase
 
     d = create_driver(SINGLE_LINE_CONFIG + CONFIG_READ_FROM_HEAD + encoding_config)
 
-    d.run do
-      sleep 1
-
+    d.run(expect_emits: 1) do
       File.open("#{TMP_DIR}/tail.txt", "wb") {|f|
         f.puts "test"
       }
-      sleep 1
     end
 
     events = d.events
@@ -417,7 +396,6 @@ class TailInputTest < Test::Unit::TestCase
         f.puts "f test7"
         f.puts "s test8"
       }
-      sleep(0.1) until d.stop?
     end
 
     events = d.events
@@ -452,7 +430,6 @@ class TailInputTest < Test::Unit::TestCase
         f.puts "f test7"
         f.puts "s test8"
       }
-      sleep(0.1) until d.stop?
     end
 
     events = d.events
@@ -482,7 +459,6 @@ class TailInputTest < Test::Unit::TestCase
       File.open("#{TMP_DIR}/tail.txt", "wb") { |f|
         f.puts "s test"
       }
-      sleep(0.1) until d.stop?
     end
 
     events = d.events
@@ -512,7 +488,6 @@ class TailInputTest < Test::Unit::TestCase
         f.puts "f test7"
         f.puts "s test8"
       }
-      sleep(0.1) until d.stop?
     end
 
     events = d.events
@@ -545,7 +520,6 @@ class TailInputTest < Test::Unit::TestCase
           f.puts "s test4"
         }
       end
-      sleep(0.1) until d.stop?
     end
 
     events = d.events
@@ -575,7 +549,6 @@ class TailInputTest < Test::Unit::TestCase
         f.puts "bar 2"
         f.puts "baz 2"
       }
-      sleep(0.1) until d.stop?
     end
 
     events = d.events
@@ -751,12 +724,10 @@ class TailInputTest < Test::Unit::TestCase
     [config1, config2].each do |config|
       d = create_driver(config, false)
       d.run(expect_emits: 1) do
-        sleep 1
         File.open("#{TMP_DIR}/tail.txt", "ab") {|f|
           f.puts "test3"
           f.puts "test4"
         }
-        sleep(0.1) until d.stop?
       end
       events = d.events
       assert_equal(2, events.length)
@@ -779,7 +750,6 @@ class TailInputTest < Test::Unit::TestCase
           f.puts "test3"
           f.puts "test4"
         }
-        sleep(0.1) until d.stop?
       end
 
       events = d.events
@@ -810,7 +780,6 @@ class TailInputTest < Test::Unit::TestCase
           f.puts "f test7"
           f.puts "s test8"
         }
-        sleep(0.1) until d.stop?
       end
 
       events = d.events
@@ -837,7 +806,6 @@ class TailInputTest < Test::Unit::TestCase
           f.puts "bar 1"
           f.puts "baz 1"
         }
-        sleep(0.1) until d.stop?
       end
 
       events = d.events
@@ -870,7 +838,6 @@ class TailInputTest < Test::Unit::TestCase
             f.puts "s test4"
           }
         end
-        sleep(0.1) until d.stop?
       end
 
       events = d.events
