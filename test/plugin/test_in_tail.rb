@@ -346,6 +346,7 @@ class TailInputTest < Test::Unit::TestCase
             f.puts "test6"
           }
         end
+        sleep 1 # waiting for updating pos file
       end
 
       d.events
