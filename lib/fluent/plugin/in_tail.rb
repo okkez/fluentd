@@ -743,6 +743,7 @@ module Fluent::Plugin
       def initialize(file, seek)
         @file = file
         @seek = seek
+        @mutex = Mutex.new
       end
 
       def update(ino, pos)
@@ -751,8 +752,10 @@ module Fluent::Plugin
       end
 
       def update_pos(pos)
-        @file.pos = @seek
-        @file.write "%016x" % pos
+        @mutex.syncronize do
+          @file.pos = @seek
+          @file.write "%016x" % pos
+        end
       end
 
       def read_inode
