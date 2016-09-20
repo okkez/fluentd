@@ -390,6 +390,7 @@ class TailInputTest < Test::Unit::TestCase
         end
       end
 
+      p d.emit_count
       d.events
     ensure
       file.close if file && !file.closed?
