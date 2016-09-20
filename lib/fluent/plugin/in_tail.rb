@@ -747,8 +747,10 @@ module Fluent::Plugin
       end
 
       def update(ino, pos)
-        @file.pos = @seek
-        @file.write "%016x\t%016x" % [pos, ino]
+        @mutex.syncronize do
+          @file.pos = @seek
+          @file.write "%016x\t%016x" % [pos, ino]
+        end
       end
 
       def update_pos(pos)
@@ -759,15 +761,19 @@ module Fluent::Plugin
       end
 
       def read_inode
-        @file.pos = @seek + INO_OFFSET
-        raw = @file.read(16)
-        raw ? raw.to_i(16) : 0
+        @mutex.syncronize do
+          @file.pos = @seek + INO_OFFSET
+          raw = @file.read(16)
+          raw ? raw.to_i(16) : 0
+        end
       end
 
       def read_pos
-        @file.pos = @seek
-        raw = @file.read(16)
-        raw ? raw.to_i(16) : 0
+        @mutex.syncronize do
+          @file.pos = @seek
+          raw = @file.read(16)
+          raw ? raw.to_i(16) : 0
+        end
       end
     end
 
