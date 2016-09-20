@@ -288,8 +288,8 @@ class TailInputTest < Test::Unit::TestCase
   end
 
   sub_test_case "rotate file" do
-    data(flat: SINGLE_LINE_CONFIG,
-         parse: PARSE_SINGLE_LINE_CONFIG)
+    data(flat: CONFIG_ENABLE_WATCH_TIMER + SINGLE_LINE_CONFIG,
+         parse: CONFIG_ENABLE_WATCH_TIMER + PARSE_SINGLE_LINE_CONFIG)
     def test_rotate_file(data)
       config = data
       events = sub_test_rotate_file(config, expect_emits: 2)
@@ -300,8 +300,8 @@ class TailInputTest < Test::Unit::TestCase
       assert_equal({"message" => "test6"}, events[3][2])
     end
 
-    data(flat: CONFIG_READ_FROM_HEAD + SINGLE_LINE_CONFIG,
-         parse: CONFIG_READ_FROM_HEAD + PARSE_SINGLE_LINE_CONFIG)
+    data(flat: CONFIG_READ_FROM_HEAD + CONFIG_ENABLE_WATCH_TIMER + SINGLE_LINE_CONFIG,
+         parse: CONFIG_READ_FROM_HEAD + CONFIG_ENABLE_WATCH_TIMER + PARSE_SINGLE_LINE_CONFIG)
     def test_rotate_file_with_read_from_head(data)
       config = data
       events = sub_test_rotate_file(config, expect_emits: 3)
@@ -314,8 +314,8 @@ class TailInputTest < Test::Unit::TestCase
       assert_equal({"message" => "test6"}, events[5][2])
     end
 
-    data(flat: SINGLE_LINE_CONFIG,
-         parse: PARSE_SINGLE_LINE_CONFIG)
+    data(flat: CONFIG_ENABLE_WATCH_TIMER + SINGLE_LINE_CONFIG,
+         parse: CONFIG_ENABLE_WATCH_TIMER + PARSE_SINGLE_LINE_CONFIG)
     def test_rotate_file_with_write_old(data)
       config = data
       events = sub_test_rotate_file(config, expect_emits: 3) { |rotated_file|
@@ -339,8 +339,8 @@ class TailInputTest < Test::Unit::TestCase
       assert_equal({"message" => "test6"}, events[5][2])
     end
 
-    data(flat: SINGLE_LINE_CONFIG,
-         parse: PARSE_SINGLE_LINE_CONFIG)
+    data(flat: CONFIG_ENABLE_WATCH_TIMER + SINGLE_LINE_CONFIG,
+         parse: CONFIG_ENABLE_WATCH_TIMER + PARSE_SINGLE_LINE_CONFIG)
     def test_rotate_file_with_write_old_and_no_new_file(data)
       config = data
       events = sub_test_rotate_file(config, expect_emits: 2) { |rotated_file|
