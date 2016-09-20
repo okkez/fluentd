@@ -531,7 +531,10 @@ module Fluent::Plugin
         end
 
         def on_change(prev, cur)
-          @callback.call unless closing
+          if closing?
+            p [__callee__, prev, cur]
+          end
+          @callback.call unless closing?
         rescue
           # TODO log?
           @log.error $!.to_s
