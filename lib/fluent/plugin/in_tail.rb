@@ -526,6 +526,7 @@ module Fluent::Plugin
         end
 
         def on_change(prev, cur)
+          p :stat_watcher
           @callback.call
         rescue
           # TODO log?
@@ -658,6 +659,7 @@ module Fluent::Plugin
         end
 
         def on_notify(tw)
+          p :timer_flusher
           if @start && @flush_interval
             if Time.now - @start >= @flush_interval
               @flush_method.call(tw)
