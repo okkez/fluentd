@@ -430,7 +430,6 @@ module Fluent::Plugin
       end
 
       def close(close_io = true)
-        @stat_trigger.closing = true
         if close_io && @io_handler
           @io_handler.on_notify
           @io_handler.close
@@ -520,29 +519,18 @@ module Fluent::Plugin
       end
 
       class StatWatcher < Coolio::StatWatcher
-
-        attr_writer :closing
-
         def initialize(path, log, &callback)
           @callback = callback
           @log = log
-          @closing = false
           super(path)
         end
 
         def on_change(prev, cur)
-          if closing?
-            p [__callee__, prev, cur]
-          end
-          @callback.call unless closing?
+          @callback.call
         rescue
           # TODO log?
           @log.error $!.to_s
           @log.error_backtrace
-        end
-
-        def closing?
-          @closing
         end
       end
 
