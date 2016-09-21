@@ -34,10 +34,10 @@ script:
   - bundle exec rake test TEST=test/plugin/test_in_tail.rb TESTOPTS="-v"
 
 before_script:
-  - uname -a
-  - dpkg -l | grep libev
-  - pwd
-  - mount
+  - "uname -a || :"
+  - "dpkg -l | grep libev || :"
+  - "pwd || :"
+  - "mount || :"
 
 branches:
   only:
