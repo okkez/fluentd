@@ -441,6 +441,8 @@ module Fluent::Plugin
         @rotate_handler.on_notify if @rotate_handler
         @line_buffer_timer_flusher.on_notify(self) if @line_buffer_timer_flusher
         return unless @io_handler
+        p [__callee__, @io_handler.pe.read_pos, @io_handler.io.pos]
+        return if @io_handler.pe.read_pos == @io_handler.io.pos
         @io_handler.on_notify
       end
 
