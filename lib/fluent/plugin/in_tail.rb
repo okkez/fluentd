@@ -523,11 +523,19 @@ module Fluent::Plugin
         def initialize(path, log, &callback)
           @callback = callback
           @log = log
+          @prev = nil
+          @cur = nil
           super(path)
         end
 
         def on_change(prev, cur)
           p [:stat_watcher, Time.now.to_f, prev, cur]
+          if @prev == prev && @cur == cur
+            p [:stat_watcher, "Skip!!!!!!!!!"]
+            return
+          end
+          @prev = prev
+          @cur = cur
           @callback.call
         rescue
           # TODO log?
