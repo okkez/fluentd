@@ -556,6 +556,7 @@ module Fluent::Plugin
           begin
             read_more = false
 
+            p [__callee__, Time.now.to_f, @lines]
             if @lines.empty?
               begin
                 while true
