@@ -526,7 +526,7 @@ module Fluent::Plugin
         end
 
         def on_change(prev, cur)
-          p [:stat_watcher, Time.now.to_f]
+          p [:stat_watcher, Time.now.to_f, prev, cur]
           @callback.call
         rescue
           # TODO log?
