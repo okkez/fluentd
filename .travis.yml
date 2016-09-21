@@ -34,6 +34,7 @@ script:
   - bundle exec rake test TEST=test/plugin/test_in_tail.rb TESTOPTS="-v"
 
 before_script:
+  - pwd
   - mount
 
 branches:
