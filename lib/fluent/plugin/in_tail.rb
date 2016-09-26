@@ -479,6 +479,7 @@ module Fluent::Plugin
               pos = @read_from_head ? 0 : fsize
               @pe.update(inode, pos)
             end
+            p ["TailWatcher", __callee__, pos, fsize, stat]
             io.seek(pos)
 
             @io_handler = IOHandler.new(io, @pe, @log, @read_lines_limit, &method(:wrap_receive_lines))
