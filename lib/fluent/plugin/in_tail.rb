@@ -455,6 +455,7 @@ module Fluent::Plugin
             inode = stat.ino
 
             last_inode = @pe.read_inode
+            p ["TailWatcher", __callee__, last_inode, inode, io]
             if inode == last_inode
               # rotated file has the same inode number with the last file.
               # assuming following situation:
