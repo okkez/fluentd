@@ -562,7 +562,6 @@ module Fluent::Plugin
           begin
             read_more = false
 
-            p [__callee__, Time.now.to_f, @lines, @buffer]
             if @lines.empty?
               begin
                 while true
@@ -667,7 +666,6 @@ module Fluent::Plugin
         end
 
         def on_notify(tw)
-          p [:timer_flusher, Time.now.to_f]
           if @start && @flush_interval
             if Time.now - @start >= @flush_interval
               @flush_method.call(tw)

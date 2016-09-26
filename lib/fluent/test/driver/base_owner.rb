@@ -63,9 +63,6 @@ module Fluent
 
         # via TestEventRouter
         def emit_event_stream(tag, es)
-          if stop?
-            puts caller
-          end
           @event_streams << Emit.new(tag, es)
         end
 
