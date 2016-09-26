@@ -529,7 +529,7 @@ module Fluent::Plugin
         end
 
         def on_change(prev, cur)
-          p [:stat_watcher, Time.now.to_f, prev, cur]
+          p [:stat_watcher, Time.now.to_f, object_id, prev, cur]
           if @prev == prev && @cur == cur
             p [:stat_watcher, "Skip!!!!!!!!!"]
             return
