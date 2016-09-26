@@ -442,7 +442,7 @@ module Fluent::Plugin
         @rotate_handler.on_notify if @rotate_handler
         @line_buffer_timer_flusher.on_notify(self) if @line_buffer_timer_flusher
         return unless @io_handler
-        p ["TailWatcher", __callee__, @io_handler.pe.read_pos, @io_handler.io.pos]
+        p ["TailWatcher", __callee__, object_id, @io_handler.pe.read_pos, @io_handler.io.pos]
         @io_handler.on_notify
       end
 
@@ -455,7 +455,7 @@ module Fluent::Plugin
             inode = stat.ino
 
             last_inode = @pe.read_inode
-            p ["TailWatcher", __callee__, last_inode, inode, io]
+            p ["TailWatcher", __callee__, object_id, {last_inode: last_inode, inode: inode}, io]
             if inode == last_inode
               # rotated file has the same inode number with the last file.
               # assuming following situation:
@@ -480,7 +480,7 @@ module Fluent::Plugin
               pos = @read_from_head ? 0 : fsize
               @pe.update(inode, pos)
             end
-            p ["TailWatcher", __callee__, pos, fsize, stat]
+            p ["TailWatcher", __callee__, object_id, {pos: pos, fsize: fsize, stat: stat}]
             io.seek(pos)
 
             @io_handler = IOHandler.new(io, @pe, @log, @read_lines_limit, &method(:wrap_receive_lines))
