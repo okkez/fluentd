@@ -468,7 +468,13 @@ module Fluent::Plugin
               # this is FilePositionEntry and fluentd once started.
               # read data from the head of the rotated file.
               # logs never duplicate because this file is a rotated new file.
-              pos = 0
+              pos = if @pe.read_inode == inode
+                      @log.trace "StatWatcher#on_change notified duplicated events!"
+                      p "StatWatcher#on_change notified duplicated events!"
+                      @pe.read_pos
+                    else
+                      0
+                    end
               p ["TailWatcher", __callee__, 2]
               @pe.update(inode, pos)
             else
