@@ -441,7 +441,7 @@ module Fluent::Plugin
         @rotate_handler.on_notify if @rotate_handler
         @line_buffer_timer_flusher.on_notify(self) if @line_buffer_timer_flusher
         return unless @io_handler
-        p [__callee__, @io_handler.pe.read_pos, @io_handler.io.pos]
+        p ["TailWatcher", __callee__, @io_handler.pe.read_pos, @io_handler.io.pos]
         @io_handler.on_notify
       end
 
@@ -523,19 +523,11 @@ module Fluent::Plugin
         def initialize(path, log, &callback)
           @callback = callback
           @log = log
-          @prev = nil
-          @cur = nil
           super(path)
         end
 
         def on_change(prev, cur)
           p [:stat_watcher, Time.now.to_f, object_id, prev, cur]
-          if @prev == prev && @cur == cur
-            p [:stat_watcher, "Skip!!!!!!!!!"]
-            return
-          end
-          @prev = prev
-          @cur = cur
           @callback.call
         rescue
           # TODO log?
