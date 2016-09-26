@@ -438,6 +438,7 @@ module Fluent::Plugin
       end
 
       def on_notify
+        p ["TailWatcher", __callee__, @rotate_handler, @line_buffer_timer_flusher, @io_handler]
         @rotate_handler.on_notify if @rotate_handler
         @line_buffer_timer_flusher.on_notify(self) if @line_buffer_timer_flusher
         return unless @io_handler
