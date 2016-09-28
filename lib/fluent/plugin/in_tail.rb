@@ -467,6 +467,15 @@ module Fluent::Plugin
               # logs never duplicate because this file is a rotated new file.
               # StatWatcher#on_change may notify duplicated events.
               pos = 0
+              hash = {
+                inode: inode,
+                last_inode: @pe.read_inode,
+                pf_inode: @pf[io.path].read_inode,
+                fsize: fsize,
+                pos: @pe.read_pos,
+                pf_pos: @pf[io.path].read_pos
+              }
+              p [__callee__, object_id, hash]
               if @pf[io.path].read_inode == inode
                 @log.trace "StatWatcher#on_change notified duplicated events!"
                 return
