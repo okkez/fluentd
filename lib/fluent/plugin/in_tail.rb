@@ -257,6 +257,7 @@ module Fluent::Plugin
       #   pos: s.pos,
       # }
       # p [self.class, __callee__, object_id, path, hash]
+      p [self.class, __callee__]
       @tails[path] = setup_watcher(path, pe)
       close_watcher_after_rotate_wait(rotated_tw) if rotated_tw
     end
