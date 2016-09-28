@@ -248,16 +248,9 @@ module Fluent::Plugin
 
     # refresh_watchers calls @tails.keys so we don't use stop_watcher -> start_watcher sequence for safety.
     def update_watcher(path, pe)
-      rotated_tw = @tails[path]
-      # s = File.stat(path)
-      # hash = {
-      #   pe_inode: pe.read_inode,
-      #   pe_pos: pe.read_pos,
-      #   inode: s.inode,
-      #   pos: s.pos,
-      # }
-      # p [self.class, __callee__, object_id, path, hash]
       p [self.class, __callee__, object_id, Time.now.to_f, pe.read_inode, @pf[path].read_inode]
+      return unless pe.read_inode == @pf[path].read_inode
+      rotated_tw = @tails[path]
       @tails[path] = setup_watcher(path, pe)
       close_watcher_after_rotate_wait(rotated_tw) if rotated_tw
     end
