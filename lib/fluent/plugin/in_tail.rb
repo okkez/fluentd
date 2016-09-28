@@ -249,6 +249,7 @@ module Fluent::Plugin
     # refresh_watchers calls @tails.keys so we don't use stop_watcher -> start_watcher sequence for safety.
     def update_watcher(path, pe)
       rotated_tw = @tails[path]
+      p [self.class, __callee__, object_id, { path: File.stat(path).inode, pe: pe.read_inode }]
       @tails[path] = setup_watcher(path, pe)
       close_watcher_after_rotate_wait(rotated_tw) if rotated_tw
     end
@@ -453,17 +454,20 @@ module Fluent::Plugin
             inode = stat.ino
 
             last_inode = @pe.read_inode
+            p ["TailWatcher", __callee__, object_id, {last_inode: last_inode, inode: inode}, io]
             if inode == last_inode
               # rotated file has the same inode number with the last file.
               # assuming following situation:
               #   a) file was once renamed and backed, or
               #   b) symlink or hardlink to the same file is recreated
               # in either case, seek to the saved position
+              p ["TailWatcher", __callee__, 1]
               pos = @pe.read_pos
             elsif last_inode != 0
               # this is FilePositionEntry and fluentd once started.
               # read data from the head of the rotated file.
               # logs never duplicate because this file is a rotated new file.
+              p ["TailWatcher", __callee__, 2]
               pos = 0
               @pe.update(inode, pos)
             else
@@ -471,9 +475,11 @@ module Fluent::Plugin
               # seek to the end of the any files.
               # logs may duplicate without this seek because it's not sure the file is
               # existent file or rotated new file.
+              p ["TailWatcher", __callee__, 3]
               pos = @read_from_head ? 0 : fsize
               @pe.update(inode, pos)
             end
+            p ["TailWatcher", __callee__, object_id, {pos: pos, fsize: fsize, stat: stat}]
             io.seek(pos)
 
             @io_handler = IOHandler.new(io, @pe, @log, @read_lines_limit, &method(:wrap_receive_lines))
@@ -526,6 +532,7 @@ module Fluent::Plugin
         end
 
         def on_change(prev, cur)
+          p [:stat_watcher, Time.now.to_f, object_id, prev, cur]
           @callback.call
         rescue
           # TODO log?
@@ -743,28 +750,37 @@ module Fluent::Plugin
       def initialize(file, seek)
         @file = file
         @seek = seek
+        @mutex = Mutex.new
       end
 
       def update(ino, pos)
-        @file.pos = @seek
-        @file.write "%016x\t%016x" % [pos, ino]
+        @mutex.synchronize do
+          @file.pos = @seek
+          @file.write "%016x\t%016x" % [pos, ino]
+        end
       end
 
       def update_pos(pos)
-        @file.pos = @seek
-        @file.write "%016x" % pos
+        @mutex.synchronize do
+          @file.pos = @seek
+          @file.write "%016x" % pos
+        end
       end
 
       def read_inode
-        @file.pos = @seek + INO_OFFSET
-        raw = @file.read(16)
-        raw ? raw.to_i(16) : 0
+        @mutex.synchronize do
+          @file.pos = @seek + INO_OFFSET
+          raw = @file.read(16)
+          raw ? raw.to_i(16) : 0
+        end
       end
 
       def read_pos
-        @file.pos = @seek
-        raw = @file.read(16)
-        raw ? raw.to_i(16) : 0
+        @mutex.synchronize do
+          @file.pos = @seek
+          raw = @file.read(16)
+          raw ? raw.to_i(16) : 0
+        end
       end
     end
 
