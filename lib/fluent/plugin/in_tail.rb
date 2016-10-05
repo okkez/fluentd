@@ -210,7 +210,6 @@ module Fluent::Plugin
       tw.attach do |watcher|
         watcher.timer_trigger = timer_execute(:in_tail_timer_trigger, 1, &watcher.method(:on_notify)) if watcher.enable_watch_timer
         event_loop_attach(watcher.stat_trigger)
-        timer_execute(:in_tail_attach, 0, repeat: false, &watcher.method(:on_notify))
       end
       tw
     end
@@ -424,6 +423,7 @@ module Fluent::Plugin
 
       def attach
         yield self
+        on_notify
       end
 
       def detach
