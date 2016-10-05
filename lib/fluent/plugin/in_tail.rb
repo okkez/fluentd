@@ -206,7 +206,7 @@ module Fluent::Plugin
 
     def setup_watcher(path, pe)
       line_buffer_timer_flusher = (@multiline_mode && @multiline_flush_interval) ? TailWatcher::LineBufferTimerFlusher.new(log, @multiline_flush_interval, &method(:flush_buffer)) : nil
-      tw = TailWatcher.new(path, @rotate_wait, pe, log, @read_from_head, @enable_watch_timer, @read_lines_limit, method(:update_watcher), line_buffer_timer_flusher, &method(:receive_lines))
+      tw = TailWatcher.new(path, @rotate_wait, @pf, pe, log, @read_from_head, @enable_watch_timer, @read_lines_limit, method(:update_watcher), line_buffer_timer_flusher, &method(:receive_lines))
       tw.attach do |watcher|
         timer_execute(:in_tail_timer_trigger, 1, &watcher.method(:on_notify)) if watcher.enable_watch_timer
         event_loop_attach(watcher.stat_trigger)
@@ -387,9 +387,10 @@ module Fluent::Plugin
     end
 
     class TailWatcher
-      def initialize(path, rotate_wait, pe, log, read_from_head, enable_watch_timer, read_lines_limit, update_watcher, line_buffer_timer_flusher, &receive_lines)
+      def initialize(path, rotate_wait, pf, pe, log, read_from_head, enable_watch_timer, read_lines_limit, update_watcher, line_buffer_timer_flusher, &receive_lines)
         @path = path
         @rotate_wait = rotate_wait
+        @pf = pf
         @pe = pe || MemoryPositionEntry.new
         @read_from_head = read_from_head
         @enable_watch_timer = enable_watch_timer
@@ -464,8 +465,23 @@ module Fluent::Plugin
               # this is FilePositionEntry and fluentd once started.
               # read data from the head of the rotated file.
               # logs never duplicate because this file is a rotated new file.
+              # StatWatcher#on_change may notify duplicated events.
               pos = 0
-              @pe.update(inode, pos)
+              hash = {
+                inode: inode,
+                last_inode: @pe.read_inode,
+                pf_inode: @pf[io.path].read_inode,
+                fsize: fsize,
+                pos: @pe.read_pos,
+                pf_pos: @pf[io.path].read_pos
+              }
+              p [__callee__, object_id, hash]
+              if @pf[io.path].read_inode == inode
+                @log.trace "StatWatcher#on_change notified duplicated events!"
+                return
+              else
+                @pe.update(inode, pos)
+              end
             else
               # this is MemoryPositionEntry or this is the first time fluentd started.
               # seek to the end of the any files.
@@ -526,6 +542,7 @@ module Fluent::Plugin
         end
 
         def on_change(prev, cur)
+          p [:stat_watcher, object_id, prev, cur]
           @callback.call
         rescue
           # TODO log?
