@@ -63,7 +63,7 @@ module Fluent
 
         # via TestEventRouter
         def emit_event_stream(tag, es)
-          @event_streams << Emit.new(tag, es)
+          @event_streams << Emit.new(tag, es) unless stop?
         end
 
         def emit_error_event(tag, time, record, error)

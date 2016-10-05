@@ -30,6 +30,9 @@ matrix:
 #   os: osx
 #   osx_image: ....
 
+script:
+  - bundle exec rake TEST=test/plugin/test_in_tail.rb TESTOPTS="-v"
+
 branches:
   only:
     - master
