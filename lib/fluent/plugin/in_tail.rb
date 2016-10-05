@@ -522,10 +522,15 @@ module Fluent::Plugin
         def initialize(path, log, &callback)
           @callback = callback
           @log = log
+          @prev = nil
+          @cur = nil
           super(path)
         end
 
         def on_change(prev, cur)
+          return if @prev == prev && @cur == cur
+          @prev = prev
+          @cur = cur
           @callback.call
         rescue
           # TODO log?
